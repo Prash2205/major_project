@@ -36,16 +36,6 @@ def image_to_base64(img_path, resize_dim=(25, 25)):
 
     return image_base64
 
-# Function to generate an RSA key pair
-def generate_rsa_key_pair():
-    private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
-    )
-    public_key = private_key.public_key()
-    return private_key, public_key
-
 # Function to generate an RSA key pair and save to disk
 def generate_and_save_rsa_key_pair():
     private_key = rsa.generate_private_key(
@@ -177,6 +167,20 @@ def messageToBinary(message):
   else:
     raise TypeError('Input Type Not Supported')
     
+def binarytotext(extracted_message):
+    binary_values = extracted_message.split()
+    ascii_characters = [chr(int(binary, 2)) for binary in binary_values]
+    text_data = ''.join(ascii_characters)
+    return text_data
+
+def text_to_binary(message):
+    secret_message = ''.join(format(ord(char), '08b') for char in message)
+    return secret_message
+
+def binary_to_text(secret_message):
+    text_message = ''.join(chr(int(secret_message[i:i+8], 2)) for i in range(0, len(secret_message), 8))
+    return text_message
+    
 #to hide secret msg into image
 def hideDataDCT(image, secret_message, output_filename):
     # Convert the image to YCbCr color space
@@ -229,7 +233,8 @@ def showDataDCT(image):
 def encode_text_dct():
     watermark_image_name = input('Enter watermark image name(with extension): ')
     image_name = input('Enter the image name(with extension): ')
-    secret_message = input("Enter Secret Message to be embedded : ")
+    message = input("Enter Secret Message to be embedded : ")
+    secret_message = text_to_binary(message)
     output_filename = input("Enter the name of the watermarked image (with extension and as JPG): ")
 
     image = cv2.imread(image_name)
@@ -244,22 +249,25 @@ def decode_text_dct():
     image_name = input('Enter the name of the watermarked image that you want to decode (with extension): ')
     watermarked_image = cv2.imread(image_name)
     extracted_message = showDataDCT(watermarked_image)
+    text_message = binary_to_text(extracted_message)
 
     if extracted_message is not None:
-        print("Decoded message is:", extracted_message)
-        return extracted_message
+        print("Decoded message is:", text_message)
+        return text_message
     else:
         print("Decoding failed. No message extracted.")
         return ""  # Return an empty string or handle this case accordingly
 
 #Peak to noise ratio - compares quality of image
 def psnr(orig, watermarked):
-    mse = np.mean((orig - watermarked) ** 2)
-    if(mse == 0):
-        return 100
+   print(type(orig), type(watermarked))
+   print(orig, watermarked)
+   mse = np.mean((orig - watermarked) ** 2)
+   if(mse == 0):
+       return 100
     
-    PIXEL_MAX = 255.0
-    return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
+   PIXEL_MAX = 255.0
+   return 20 * np.log10(PIXEL_MAX / np.sqrt(mse))
 
 #Normalized Cross-Correlation - compares the similarity between images
 def ncc(orig, stego):
@@ -270,7 +278,7 @@ def ncc(orig, stego):
     ncc = (np.mean(norm_orig * norm_stego)) / (np.std(norm_orig) * np.std(norm_stego))
     return ncc
 
-def LSB():
+def main():
     image_name = ''
     watermarked_image = 0
     a = input("Digital Image Watermarking \n 1. Embed the data \n 2. Extract the data \n Your input is: ")
@@ -306,4 +314,4 @@ recipient_public_key_pem = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 ).decode('utf-8')
 
-LSB() #embed image
+main() #embed image
